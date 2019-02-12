@@ -1,14 +1,13 @@
 package com.mg1986.filesyncer;
 
-import java.io.File;
-import java.util.Arrays;
+import java.io.*;
 import java.util.Calendar;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
-import org.apache.commons.io.*;
+import org.apache.commons.io.FileUtils;
 
 public class FileSyncer {
 
@@ -58,14 +57,9 @@ public class FileSyncer {
                         System.out.println("Directory synced: " + target);
                     }
                 } else if (source.isFile()) {
-                    if (!target.exists()) {
+                    if (!target.exists() || !filesAreIdentical(source, target)) {
                         Files.copy(source.toPath(), target.toPath(), REPLACE_EXISTING);
                         System.out.println("File synced: " + target);
-                    } else {
-                        if (!filesAreIdentical(source, target)) {
-                            Files.copy(source.toPath(), target.toPath(), REPLACE_EXISTING);
-                            System.out.println("File synced: " + target);
-                        }
                     }
                 }
             } catch (IOException ioe) {
@@ -86,7 +80,11 @@ public class FileSyncer {
                 File source = new File(sourceURL);
                 if (target.exists() && !source.exists()) {
                     System.out.println("File/Directory removed: " + target.getAbsolutePath());
-                    Files.deleteIfExists(target.toPath());
+                    if (target.isDirectory()) {
+                        FileUtils.deleteDirectory(target);
+                    } else {
+                        Files.deleteIfExists(target.toPath());
+                    }
                 } else if (target.isDirectory()){
                     desync(target.getAbsolutePath(), source.getAbsolutePath());
                 }
@@ -99,18 +97,33 @@ public class FileSyncer {
     // Returns true if two files are identical
     private static boolean filesAreIdentical(File file1, File file2) {
 
-        boolean identical = false;
+        boolean identical = true;
 
-        try {
-            if (file1.length() != file2.length()) {
-                identical = false;
-            } else if (FileUtils.contentEquals(file1, file2)) {
-                identical = true;
-            }
-        } catch (IOException ioe) {
-            System.out.println("IO Error");
+        if(file1.length() != file2.length()){
+            return false;
         }
 
+        try {
+            InputStream inputStream1 = new BufferedInputStream(new FileInputStream(file1));
+            InputStream inputStream2 = new BufferedInputStream(new FileInputStream(file2));
+
+            int file1Bytes = 1;
+            int file2Bytes;
+
+            while(file1Bytes >= 0) {
+                file1Bytes = inputStream1.read();
+                file2Bytes = inputStream2.read();
+                if(file1Bytes != file2Bytes){
+                    identical = false;
+                    break;
+                }
+            }
+
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+        }
         return identical;
     }
 }
+
+
