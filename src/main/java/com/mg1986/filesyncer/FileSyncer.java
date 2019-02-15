@@ -15,12 +15,14 @@ public class FileSyncer {
 
     public static void main(String[] args) {
 
+        // If two command line arguments supplied at runtime, proceed
         if (args.length == 2) {
             String sourceURL = args[0];
             File sourceDirectory = new File(sourceURL);
             String targetURL = args[1];
             File targetDirectory = new File(targetURL);
 
+            // If both command line argument are valid directories that exists, proceed
             if (sourceDirectory.isDirectory() && targetDirectory.isDirectory()) {
 
                 String beginTimeStamp = new SimpleDateFormat("yyyy/MM/dd k:m").format(Calendar.getInstance().getTime());
@@ -57,7 +59,7 @@ public class FileSyncer {
                         System.out.println("Directory synced: " + target);
                     }
                 } else if (source.isFile()) {
-                    if (!target.exists() || !filesAreIdentical(source, target)) {
+                    if (!target.exists() || !FileUtils.contentEquals(source, target)) {
                         Files.copy(source.toPath(), target.toPath(), REPLACE_EXISTING);
                         System.out.println("File synced: " + target);
                     }
@@ -85,45 +87,15 @@ public class FileSyncer {
                     } else {
                         Files.deleteIfExists(target.toPath());
                     }
-                } else if (target.isDirectory()){
+                } else if (target.isDirectory()) {
                     desync(target.getAbsolutePath(), source.getAbsolutePath());
                 }
-            } catch (IOException ioe){
+            } catch (IOException ioe) {
                 System.out.println("Desync failed: " + target.getAbsolutePath());
             }
         }
     }
-
-    // Returns true if two files are identical
-    private static boolean filesAreIdentical(File file1, File file2) {
-
-        boolean identical = true;
-
-        if(file1.length() != file2.length()){
-            return false;
-        }
-
-        try {
-            InputStream inputStream1 = new BufferedInputStream(new FileInputStream(file1));
-            InputStream inputStream2 = new BufferedInputStream(new FileInputStream(file2));
-
-            int file1Bytes = 1;
-            int file2Bytes;
-
-            while(file1Bytes >= 0) {
-                file1Bytes = inputStream1.read();
-                file2Bytes = inputStream2.read();
-                if(file1Bytes != file2Bytes){
-                    identical = false;
-                    break;
-                }
-            }
-
-        } catch (IOException ioe) {
-            ioe.printStackTrace();
-        }
-        return identical;
-    }
 }
+
 
 
